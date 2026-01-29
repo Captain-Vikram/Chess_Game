@@ -6,14 +6,8 @@ pipeline {
         DOCKER_HUB_USER = 'captainvikram' 
         IMAGE_NAME      = 'chess-game'
         
-        // --- CREDENTIAL IDs ---
-        // 1. GitHub Token ID (From your earlier screenshot)
+        // --- CREDENTIALS ---
         GITHUB_CREDS_ID = 'Captain-Vikram' 
-        
-        // 2. SonarQube Token ID (From your earlier screenshot)
-        SONAR_TOKEN_ID  = 'sonar qube auth token'
-        
-        // 3. Docker Hub ID (The one you just created)
         DOCKER_CREDS_ID = 'Docker-Hub'
     }
 
@@ -22,7 +16,6 @@ pipeline {
         stage('Checkout') {
             steps {
                 cleanWs()
-                // Explicitly checkout the 'testing' branch
                 git branch: 'testing',
                     credentialsId: "${GITHUB_CREDS_ID}",
                     url: 'https://github.com/Captain-Vikram/Chess_Game.git'
@@ -32,7 +25,6 @@ pipeline {
         // 2. Install Dependencies
         stage('Install Dependencies') {
             steps {
-                // Installs node modules for SonarQube analysis
                 bat 'npm install'
             }
         }
@@ -40,9 +32,14 @@ pipeline {
         // 3. SonarQube Analysis
         stage('SonarQube Analysis') {
             steps {
-                // IMPORTANT: Ensure your Global Tool Configuration tool is named 'SonarQube Scanner'
-                withSonarQubeEnv('SonarQube Scanner') { 
-                    bat "sonar-scanner -Dsonar.projectKey=chess-game -Dsonar.sources=src -Dsonar.host.url=http://localhost:9000 -Dsonar.login=%SONAR_AUTH_TOKEN%"
+                script {
+                    // 1. Get the tool path using the name 'SONAR_RUNNER_HOME'
+                    def scannerHome = tool 'SONAR_RUNNER_HOME'
+                    
+                    // 2. Connect to the server named 'SonarQube' (The one you just saved)
+                    withSonarQubeEnv('SonarQube') { 
+                        bat "\"${scannerHome}\\bin\\sonar-scanner\" -Dsonar.projectKey=chess-game -Dsonar.sources=src"
+                    }
                 }
             }
         }
@@ -51,13 +48,12 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
-                    // Aborts pipeline if Quality Gate fails
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
 
-        // 5. Merge Testing -> Main (Runs only if Quality Gate passed)
+        // 5. Merge Testing -> Main
         stage('Merge to Main') {
             steps {
                 script {
@@ -68,14 +64,10 @@ pipeline {
                             git config user.email "jenkins@bot.com"
                             git config user.name "Jenkins Bot"
                             
-                            REM Fetch all branches
                             git fetch origin main:main
-                            
-                            REM Checkout main and merge testing
                             git checkout main
                             git merge testing
                             
-                            REM Push to GitHub using the Token
                             git push https://%GIT_TOKEN%@github.com/Captain-Vikram/Chess_Game.git main
                         """
                     }
@@ -83,7 +75,7 @@ pipeline {
             }
         }
 
-        // 6. Build & Push Docker Image
+        // 6. Docker Build & Push
         stage('Docker Build & Push') {
             steps {
                 script {
