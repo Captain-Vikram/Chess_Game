@@ -3,14 +3,12 @@ pipeline {
 
     environment {
         // --- CONFIGURATION ---
-        DOCKER_HUB_USER = 'captainvikram' 
+        // UPDATED: Added '09' to match your real Docker Hub username
+        DOCKER_HUB_USER = 'captainvikram09' 
         IMAGE_NAME      = 'chess-game'
         
-        // --- CREDENTIALS (UPDATED) ---
-        // We now use the specific ID you just created:
+        // --- CREDENTIALS ---
         GITHUB_CREDS_ID = 'github-login' 
-        
-        // Ensure this ID matches your Docker credential ID exactly
         DOCKER_CREDS_ID = 'Docker-Hub'
     }
 
@@ -33,11 +31,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // Tool Name: Must match 'Manage Jenkins > Tools' (You named it 'SonarScanner')
                     def scannerHome = tool 'SonarScanner'
-                    
-                    // Server Name: Must match 'Manage Jenkins > System'
-                    // IMPORTANT: Ensure you named your server "SonarQube" in the System settings!
                     withSonarQubeEnv('SonarQube') { 
                         bat "\"${scannerHome}\\bin\\sonar-scanner\" -Dsonar.projectKey=chess-game -Dsonar.sources=src"
                     }
@@ -59,14 +53,12 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: "${GITHUB_CREDS_ID}", passwordVariable: 'GIT_TOKEN', usernameVariable: 'GIT_USER')]) {
                         bat """
                             echo "Quality Gate Passed. Merging to Main..."
-                            
                             git config user.email "jenkins@bot.com"
                             git config user.name "Jenkins Bot"
                             
                             git fetch origin main:main
                             git checkout main
                             git merge testing
-                            
                             git push https://%GIT_TOKEN%@github.com/Captain-Vikram/Chess_Game.git main
                         """
                     }
@@ -80,7 +72,8 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDS_ID}", passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                         bat """
                             echo "Logging in to Docker Hub..."
-                            docker login -u %DOCKER_USER% -p %DOCKER_PASS%
+                            @REM Safe login using stdin to handle special characters in tokens
+                            echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
                             
                             echo "Building Image..."
                             docker build -t %DOCKER_USER%/%IMAGE_NAME%:%BUILD_NUMBER% .
