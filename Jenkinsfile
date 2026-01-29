@@ -94,20 +94,18 @@ pipeline {
     }
 
     // --- JIRA NOTIFICATIONS ---
+    // --- JIRA NOTIFICATIONS (FINAL FIX) ---
     post {
-        always {
-            // Validates the connection to your specific Jira site
-            jiraSendBuildInfo site: 'https://sakec-team-tet29ose.atlassian.net' 
-        }
         success {
             script {
+                // This comments on the ticket if the build passes
                 jiraComment body: "✅ Build #${env.BUILD_NUMBER} Passed! \nDocker Image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER} \nStatus: Ready for Deployment."
             }
         }
         failure {
             script {
-                // Posts a failure comment
-                jiraComment body: "❌ Build #${env.BUILD_NUMBER} Failed. \nPlease check Jenkins logs for details."
+                // This comments on the ticket if the build fails
+                jiraComment body: "❌ Build #${env.BUILD_NUMBER} Failed. \nPlease check Jenkins logs."
             }
         }
     }
