@@ -10,7 +10,6 @@ pipeline {
     }
 
     stages {
-        // 1. Checkout Code
         stage('Checkout') {
             steps {
                 cleanWs()
@@ -19,15 +18,12 @@ pipeline {
                     url: 'https://github.com/Captain-Vikram/Chess_Game.git'
             }
         }
-
-        // 2. Install Dependencies
         stage('Install Dependencies') {
             steps {
                 bat 'npm install'
             }
         }
 
-        // 3. Run SonarQube Analysis
         stage('SonarQube Analysis') {
             steps {
                 script {
@@ -42,7 +38,6 @@ pipeline {
             }
         }
 
-        // 4. Quality Gate (Wait for Pass/Fail)
         stage('Quality Gate') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
@@ -51,7 +46,6 @@ pipeline {
             }
         }
 
-        // 5. Merge Testing -> Main
         stage('Merge to Main') {
             steps {
                 script {
