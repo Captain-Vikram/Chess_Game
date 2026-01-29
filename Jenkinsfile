@@ -6,11 +6,10 @@ pipeline {
         DOCKER_HUB_USER = 'captainvikram' 
         IMAGE_NAME      = 'chess-game'
         
-        // --- CREDENTIALS ---
-        // TODO: PASTE YOUR REAL ID FROM 'MANAGE JENKINS > CREDENTIALS' HERE
-        GITHUB_CREDS_ID = 'YOUR_REAL_GITHUB_ID_HERE' 
+        // --- CREDENTIALS (FIXED) ---
+        // I put your actual ID here. Do not change this unless your ID is different.
+        GITHUB_CREDS_ID = 'Captain-Vikram' 
         
-        // This likely matches, but check the ID column for this too just in case
         DOCKER_CREDS_ID = 'Docker-Hub'
     }
 
@@ -18,7 +17,6 @@ pipeline {
         stage('Checkout') {
             steps {
                 cleanWs()
-                // Explicitly checkout the 'testing' branch
                 git branch: 'testing',
                     credentialsId: "${GITHUB_CREDS_ID}",
                     url: 'https://github.com/Captain-Vikram/Chess_Game.git'
@@ -34,10 +32,11 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // UPDATED: Now looks for the tool named 'SonarScanner'
+                    // Tool Name: Must match 'Manage Jenkins > Tools'
                     def scannerHome = tool 'SonarScanner'
                     
-                    // Ensure your Server Name in 'Manage Jenkins > System' is 'SonarQube'
+                    // Server Name: Must match 'Manage Jenkins > System'
+                    // If your server is named something else (e.g. "sonar"), CHANGE THIS WORD below.
                     withSonarQubeEnv('SonarQube') { 
                         bat "\"${scannerHome}\\bin\\sonar-scanner\" -Dsonar.projectKey=chess-game -Dsonar.sources=src"
                     }
