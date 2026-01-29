@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         // --- CONFIGURATION ---
-        // UPDATED: Added '09' to match your real Docker Hub username
         DOCKER_HUB_USER = 'captainvikram09' 
         IMAGE_NAME      = 'chess-game'
         
@@ -13,6 +12,7 @@ pipeline {
     }
 
     stages {
+        // 1. Checkout Code
         stage('Checkout') {
             steps {
                 cleanWs()
@@ -22,16 +22,21 @@ pipeline {
             }
         }
 
+        // 2. Install Dependencies
         stage('Install Dependencies') {
             steps {
                 bat 'npm install'
             }
         }
 
+        // 3. Run SonarQube Analysis
         stage('SonarQube Analysis') {
             steps {
                 script {
+                    // Tool Name: Must match 'Manage Jenkins > Tools'
                     def scannerHome = tool 'SonarScanner'
+                    
+                    // Server Name: Must match 'Manage Jenkins > System'
                     withSonarQubeEnv('SonarQube') { 
                         bat "\"${scannerHome}\\bin\\sonar-scanner\" -Dsonar.projectKey=chess-game -Dsonar.sources=src"
                     }
@@ -39,6 +44,7 @@ pipeline {
             }
         }
 
+        // 4. Quality Gate (Wait for Pass/Fail)
         stage('Quality Gate') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
@@ -47,6 +53,7 @@ pipeline {
             }
         }
 
+        // 5. Merge Testing -> Main
         stage('Merge to Main') {
             steps {
                 script {
@@ -59,6 +66,8 @@ pipeline {
                             git fetch origin main:main
                             git checkout main
                             git merge testing
+                            
+                            echo "Pushing merged code to GitHub..."
                             git push https://%GIT_TOKEN%@github.com/Captain-Vikram/Chess_Game.git main
                         """
                     }
@@ -66,13 +75,14 @@ pipeline {
             }
         }
 
+        // 6. Build & Push Docker Image
         stage('Docker Build & Push') {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDS_ID}", passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
                         bat """
                             echo "Logging in to Docker Hub..."
-                            @REM Safe login using stdin to handle special characters in tokens
+                            @REM Safe login using stdin to handle token special characters
                             echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
                             
                             echo "Building Image..."
@@ -87,6 +97,26 @@ pipeline {
                         """
                     }
                 }
+            }
+        }
+    }
+
+    // --- JIRA NOTIFICATIONS ---
+    post {
+        always {
+            // Validates the connection to your specific Jira site
+            jiraSendBuildInfo site: 'https://sakec-team-tet29ose.atlassian.net' 
+        }
+        success {
+            script {
+                // Posts a success comment on the ticket mentioned in the commit message
+                jiraComment body: "✅ Build #${env.BUILD_NUMBER} Passed! \nDocker Image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER} \nStatus: Ready for Deployment."
+            }
+        }
+        failure {
+            script {
+                // Posts a failure comment
+                jiraComment body: "❌ Build #${env.BUILD_NUMBER} Failed. \nPlease check Jenkins logs for details."
             }
         }
     }
