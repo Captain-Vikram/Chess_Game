@@ -101,7 +101,6 @@ pipeline {
         }
         success {
             script {
-                // Posts a success comment on the ticket mentioned in the commit message
                 jiraComment body: "✅ Build #${env.BUILD_NUMBER} Passed! \nDocker Image: ${DOCKER_HUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER} \nStatus: Ready for Deployment."
             }
         }
