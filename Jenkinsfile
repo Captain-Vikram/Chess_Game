@@ -2,11 +2,9 @@ pipeline {
     agent any
 
     environment {
-        // --- CONFIGURATION ---
         DOCKER_HUB_USER = 'captainvikram09' 
         IMAGE_NAME      = 'chess-game'
         
-        // --- CREDENTIALS ---
         GITHUB_CREDS_ID = 'github-login' 
         DOCKER_CREDS_ID = 'Docker-Hub'
     }
