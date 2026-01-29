@@ -7,36 +7,37 @@ pipeline {
         IMAGE_NAME      = 'chess-game'
         
         // --- CREDENTIALS ---
-        GITHUB_CREDS_ID = 'Captain-Vikram' 
+        // TODO: PASTE YOUR REAL ID FROM 'MANAGE JENKINS > CREDENTIALS' HERE
+        GITHUB_CREDS_ID = 'YOUR_REAL_GITHUB_ID_HERE' 
+        
+        // This likely matches, but check the ID column for this too just in case
         DOCKER_CREDS_ID = 'Docker-Hub'
     }
 
     stages {
-        // 1. Clean Workspace & Checkout
         stage('Checkout') {
             steps {
                 cleanWs()
+                // Explicitly checkout the 'testing' branch
                 git branch: 'testing',
                     credentialsId: "${GITHUB_CREDS_ID}",
                     url: 'https://github.com/Captain-Vikram/Chess_Game.git'
             }
         }
 
-        // 2. Install Dependencies
         stage('Install Dependencies') {
             steps {
                 bat 'npm install'
             }
         }
 
-        // 3. SonarQube Analysis
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // 1. Get the tool path using the name 'SONAR_RUNNER_HOME'
-                    def scannerHome = tool 'SONAR_RUNNER_HOME'
+                    // UPDATED: Now looks for the tool named 'SonarScanner'
+                    def scannerHome = tool 'SonarScanner'
                     
-                    // 2. Connect to the server named 'SonarQube' (The one you just saved)
+                    // Ensure your Server Name in 'Manage Jenkins > System' is 'SonarQube'
                     withSonarQubeEnv('SonarQube') { 
                         bat "\"${scannerHome}\\bin\\sonar-scanner\" -Dsonar.projectKey=chess-game -Dsonar.sources=src"
                     }
@@ -44,7 +45,6 @@ pipeline {
             }
         }
 
-        // 4. Quality Gate
         stage('Quality Gate') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
@@ -53,7 +53,6 @@ pipeline {
             }
         }
 
-        // 5. Merge Testing -> Main
         stage('Merge to Main') {
             steps {
                 script {
@@ -75,7 +74,6 @@ pipeline {
             }
         }
 
-        // 6. Docker Build & Push
         stage('Docker Build & Push') {
             steps {
                 script {
