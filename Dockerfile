@@ -1,24 +1,17 @@
-# Build Stage
-# We add --platform=$BUILDPLATFORM to run the build step natively on your server's 
-# ARM64 CPU, which prevents the esbuild/QEMU crash you saw earlier.
+# Build Stage - Force this to run natively on the server's CPU
 FROM --platform=$BUILDPLATFORM node:18-alpine AS build
-
 WORKDIR /app
 
-# Only copy package files first to take advantage of Docker's layer caching
+# Install dependencies (respects your .dockerignore)
 COPY package*.json ./
 RUN npm install
 
-# Copy the rest of the project files
+# Copy source and build (Native ARM64 speed prevents esbuild crash)
 COPY . .
 RUN npm run build
 
-# Production Stage
+# Production Stage - Nginx is architecture-agnostic
 FROM nginx:alpine
-
-# Copy the static files from the build stage to Nginx
 COPY --from=build /app/dist /usr/share/nginx/html
-
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]
